@@ -1,0 +1,38 @@
+{
+  "year": 2026,
+  "rail_presale_days_including_departure": 15,
+  "reminder_hour": 9,
+  "holiday_reminder_hour": 20,
+  "holiday_reminder_day_before": true,
+  "rail_reminders": true,
+  "gift_reminders": true,
+  "daily_almanac": true,
+  "holidays": [
+    {"name":"元旦","start":"2026-01-01","end":"2026-01-03","workdays":["2026-01-04"],"highway_free":false},
+    {"name":"春节","start":"2026-02-15","end":"2026-02-23","workdays":["2026-02-14","2026-02-28"],"highway_free":true},
+    {"name":"清明节","start":"2026-04-04","end":"2026-04-06","workdays":[],"highway_free":true},
+    {"name":"劳动节","start":"2026-05-01","end":"2026-05-05","workdays":["2026-05-09"],"highway_free":true},
+    {"name":"端午节","start":"2026-06-19","end":"2026-06-21","workdays":[],"highway_free":false},
+    {"name":"中秋节","start":"2026-09-25","end":"2026-09-27","workdays":[],"highway_free":false},
+    {"name":"国庆节","start":"2026-10-01","end":"2026-10-07","workdays":["2026-09-20","2026-10-10"],"highway_free":true}
+  ],
+  "fixed_events": [
+    ["01-01","元旦"],["02-14","情人节"],["03-08","国际妇女节"],["03-12","植树节"],
+    ["03-15","国际消费者权益日"],["03-22","世界水日"],["04-01","愚人节"],["04-22","世界地球日"],
+    ["05-01","国际劳动节"],["05-04","青年节"],["05-12","国际护士节"],["05-18","国际博物馆日"],
+    ["06-01","儿童节"],["06-05","世界环境日"],["07-01","建党纪念日"],["08-01","建军节"],
+    ["09-03","中国人民抗日战争胜利纪念日"],["09-10","教师节"],["10-01","国庆节"],
+    ["10-31","万圣节"],["11-11","双十一"],["12-04","国家宪法日"],["12-24","平安夜"],["12-25","圣诞节"]
+  ],
+  "lunar_events": [
+    [1,1,"春节"],[1,15,"元宵节"],[2,2,"龙抬头"],[5,5,"端午节"],[7,7,"七夕节"],
+    [7,15,"中元节"],[8,15,"中秋节"],[9,9,"重阳节"],[12,8,"腊八节"]
+  ],
+  "personal_events": [],
+  "gift_rules": [
+    {"name":"情人节","date":"2026-02-14","days_before":7},
+    {"name":"母亲节","date":"2026-05-10","days_before":7},
+    {"name":"七夕节","lunar":[7,7],"days_before":7}
+  ],
+  "almanac_csv": "almanac.csv"
+}
