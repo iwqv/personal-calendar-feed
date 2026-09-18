@@ -85,7 +85,8 @@ const fold=s=>{let lines=[],part='',bytes=0;for(const char of s){let n=Buffer.by
 const write=(key,name)=> {
   const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Personal Calendar Replica//ZH','CALSCALE:GREGORIAN','METHOD:PUBLISH',`X-WR-CALNAME:${escape(name)}`,'X-WR-TIMEZONE:Asia/Shanghai','REFRESH-INTERVAL;VALUE=DURATION:PT12H'];
   let seen=new Set();
-  for(const e of events[key].sort((a,b)=>a.start.localeCompare(b.start)||a.title.localeCompare(b.title))) {
+  const selected = key === 'calendar' ? [...events.holiday,...events.festival] : events[key];
+  for(const e of selected.sort((a,b)=>a.start.localeCompare(b.start)||a.title.localeCompare(b.title))) {
     const uid=`${Buffer.from(e.id).toString('hex').slice(0,96)}@personal-calendar.example`;
     if(seen.has(uid)) continue; seen.add(uid);
     lines.push('BEGIN:VEVENT',`UID:${uid}`,'DTSTAMP:20260918T000000Z',`SUMMARY:${escape(e.title)}`);
@@ -103,9 +104,9 @@ const write=(key,name)=> {
   fs.writeFileSync(path.join(out,`${key}.ics`),lines.map(fold).join('\r\n')+'\r\n');
   return {calendar:name,events:seen.size};
 };
-console.log(JSON.stringify([write('holiday','2026 中国节假日调休'),write('festival','2026 活动纪念日'),write('almanac','2026 老黄历')],null,2));
+console.log(JSON.stringify([write('calendar','2026 个人日历'),write('holiday','2026 中国节假日调休'),write('festival','2026 活动纪念日'),write('almanac','2026 老黄历')],null,2));
 const pages = path.join(root,'docs');
 fs.mkdirSync(pages,{recursive:true});
-for(const filename of ['holiday.ics','festival.ics']) {
+for(const filename of ['calendar.ics','holiday.ics','festival.ics']) {
   fs.copyFileSync(path.join(out,filename),path.join(pages,filename));
 }
