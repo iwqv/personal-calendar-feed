@@ -2,11 +2,40 @@
 <html lang="zh-CN">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>2026 个人日历订阅源</title>
-<style>body{font-family:system-ui,-apple-system,sans-serif;max-width:620px;margin:64px auto;padding:0 24px;line-height:1.7;color:#222}a{color:#175cd3}li{margin:12px 0}small{color:#666}</style>
-<h1>2026 个人日历订阅源</h1>
-<p>在 Apple 日历中选择“添加订阅日历”，粘贴这一个地址：</p>
-<p><a href="calendar.ics">订阅 2026 个人日历</a></p>
-<p><small>包含假期调休、补班、节日、纪念日、节气与提醒。添加后可自定义日历名称、颜色和是否显示。订阅内容只读；如需增删项目，可修改仓库配置并更新同一订阅文件。</small></p>
-<small>仅覆盖 2026 年。火车票预售和高速政策以当年官方公告为准。更新由客户端定期获取。</small>
+<title>2026 个人日历订阅</title>
+<style>
+  :root{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:#20232a;background:#f6f7fb}
+  *{box-sizing:border-box}body{max-width:680px;margin:0 auto;padding:48px 20px 80px;line-height:1.6}
+  h1{font-size:28px;letter-spacing:-.02em;margin:0 0 8px}h2{font-size:18px;margin:0 0 5px}
+  p{margin:0}.intro{color:#68707e;margin-bottom:26px}.grid{display:grid;gap:14px}
+  .card{background:white;border:1px solid #e9ebf0;border-radius:18px;padding:22px;box-shadow:0 5px 24px #23263a08}
+  .card p{color:#68707e;font-size:14px}.top{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .dot{width:12px;height:12px;border-radius:50%;background:#e7a727;flex:none}.dot.blue{background:#3786da}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:17px}a,button{font:inherit;border-radius:10px;padding:9px 14px;cursor:pointer}
+  a{background:#20232a;color:white;text-decoration:none}button{background:white;color:#20232a;border:1px solid #d6d9e1}
+  .note{font-size:14px;color:#68707e;margin-top:26px}.note strong{color:#20232a}
+</style>
+<h1>2026 个人日历订阅</h1>
+<p class="intro">一个入口，按需选择日历。每添加一项，Apple 日历中就会出现一个可独立开关的订阅。</p>
+<div class="grid">
+  <section class="card">
+    <div class="top"><span class="dot blue"></span><h2>中国节假日调休</h2></div>
+    <p>假期、补班、高速免费和火车票预售参考提醒</p>
+    <div class="actions"><a href="holiday.ics">打开订阅文件</a><button type="button" data-feed="holiday.ics">复制订阅地址</button></div>
+  </section>
+  <section class="card">
+    <div class="top"><span class="dot"></span><h2>节日与纪念日</h2></div>
+    <p>传统节日、节气、纪念日和礼物准备提醒</p>
+    <div class="actions"><a href="festival.ics">打开订阅文件</a><button type="button" data-feed="festival.ics">复制订阅地址</button></div>
+  </section>
+</div>
+<p class="note"><strong>添加方法：</strong>在 iPhone 日历的“日历”→“添加日历”→“添加订阅日历”中，粘贴所需类别的地址。若已订阅此前的合并版“2026 个人日历”，请先取消它，再添加分类日历，避免日程重复。</p>
+<p class="note">仅覆盖 2026 年；订阅内容只读，客户端定期刷新。火车票预售及高速政策以官方最新公告为准。</p>
+<script>
+  for(const button of document.querySelectorAll('[data-feed]')) button.addEventListener('click',async()=>{
+    const url=new URL(button.dataset.feed,location.href).href;
+    try {await navigator.clipboard.writeText(url);button.textContent='已复制';setTimeout(()=>button.textContent='复制订阅地址',1800)}
+    catch {window.prompt('复制订阅地址',url)}
+  });
+</script>
 </html>
