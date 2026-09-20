@@ -14,6 +14,16 @@ const parse = s => new Date(`${s}T12:00:00Z`);
 const iso = d => d.toISOString().slice(0,10);
 const shift = (s,n) => {const d=parse(s);d.setUTCDate(d.getUTCDate()+n);return iso(d)};
 const compact = s => s.replaceAll('-','');
+const weekday = s => '日一二三四五六'[parse(s).getUTCDay()];
+const lunarFor = s => {
+  const [y,m,d]=s.split('-').map(Number);
+  return Solar.fromYmd(y,m,d).getLunar();
+};
+const dateLabel = s => {
+  const [,m,d]=s.split('-').map(Number);
+  const l=lunarFor(s);
+  return `${m}月${d}日（周${weekday(s)}，农历${l.getMonthInChinese()}月${l.getDayInChinese()}）`;
+};
 const events = {holiday:[],festival:[],almanac:[]};
 const lunarFmt = new Intl.DateTimeFormat('en-u-ca-chinese',{month:'numeric',day:'numeric',timeZone:'Asia/Shanghai'});
 const lunar = new Map();
@@ -28,29 +38,55 @@ const add=(key,title,start,end,description='',time=null,id=null)=> {
 };
 for(const h of c.holidays) {
   const days=Math.round((parse(h.end)-parse(h.start))/86400000)+1;
+  const holidayNote=[
+    `📝 ${h.name}：${dateLabel(h.start)}至${dateLabel(h.end)}放假调休，共${days}天。`,
+    h.workdays.length?`💼 ${h.workdays.map(dateLabel).join('、')}上班。`:'',
+    h.highway_free?'🚙 假期高速通行政策请以交通运输部门公告为准。':'',
+    '依据：国务院办公厅2026年部分节假日安排。'
+  ].filter(Boolean).join('\n');
   for(let i=0;i<days;i++) {
     const d=shift(h.start,i);
-    add('holiday',`🏖 ${h.name}假期 第${i+1}天/共${days}天`,d,null,
-      `${h.name}：${h.start} 至 ${h.end}，共 ${days} 天。${h.highway_free?'7座及以下小型客车按国家政策免收通行费。':''}来源：国务院办公厅2026年部分节假日安排。`);
+    add('holiday',`🌴 ${h.name}放假 第${i+1}天/共${days}天`,d,null,holidayNote,null,
+      `holiday-${d}-🏖 ${h.name}假期 第${i+1}天/共${days}天`);
   }
   if(h.highway_free) add('holiday',`🚙 ${h.name}高速免费`,h.start,shift(h.end,1),
-    `仅符合政策的小型客车；以驶离高速出口收费车道时间为准。具体以交通主管部门最新公告为准。`);
+    `🚙 ${h.name}假期高速免费通行。适用车型、免费时间及实际政策，请以交通运输部门公告为准。`);
   for(const w of h.workdays) {
-    add('holiday',`💼 ${h.name}调休上班`,w);
-    if(c.holiday_reminder_day_before) add('holiday',`⏰ 明天补班：${h.name}`,shift(w,-1),null,
-      `明天 ${w} 为调休工作日。`,`${c.holiday_reminder_hour}:00`);
+    add('holiday',`💼 ${h.name}调休上班`,w,null,`📝 ${dateLabel(w)}为调休工作日，记得按工作日安排。\n依据：国务院办公厅2026年部分节假日安排。`);
+    if(c.holiday_reminder_day_before) add('holiday',`⏰ 记得定明早闹钟！`,shift(w,-1),null,
+      `明天是${h.name}调休上班日：${dateLabel(w)}。别忘了设好闹钟。`,`${c.holiday_reminder_hour}:00`,
+      `holiday-${shift(w,-1)}-⏰ 明天补班：${h.name}`);
   }
   if(c.rail_reminders) {
     const presale=shift(h.start,-(c.rail_presale_days_including_departure-1));
-    add('holiday',`🎫 ${h.name}首日火车票开售参考`,presale,null,
-      `计划乘坐 ${h.start} 车次。以12306公布的起售时间和当前预售期为准，建议提前核对车站及具体车次。`,`${c.holiday_reminder_hour}:00`);
+    const reminderDate=shift(presale,-1);
+    add('holiday',`🚄 明天留意${h.name}去程车票！`,reminderDate,null,
+      `🚄 按含乘车当日 ${c.rail_presale_days_including_departure} 天的预售期推算，${dateLabel(h.start)}出发的车票预计明天进入预售。\n具体起售日期、时间和车次请在 12306 核对。`,`${c.holiday_reminder_hour}:00`);
   }
 }
-for(const [md,title] of c.fixed_events) add('festival',title,`${year}-${md}`);
+const festivalNotes={
+  '元旦':'ℹ️ 公历新年的第一天。放假和调休以当年的官方通知为准。',
+  '建党纪念日':'ℹ️ 中国共产党成立纪念日。',
+  '建军节':'ℹ️ 中国人民解放军建军纪念日。',
+  '教师节':'ℹ️ 向老师表达感谢的日子。',
+  '国庆节':'ℹ️ 中华人民共和国成立纪念日。放假和调休以当年的官方通知为准。'
+};
+for(const [md,title] of c.fixed_events) add('festival',title,`${year}-${md}`,null,festivalNotes[title]||'');
+const lunarNotes={
+  '春节':'ℹ️ 农历正月初一，农历新年的开始。放假日期另见“中国节假日调休”日历。',
+  '元宵节':'ℹ️ 农历正月十五，常见习俗有赏灯、吃元宵或汤圆。',
+  '龙抬头':'ℹ️ 农历二月初二，又称“春龙节”，各地习俗不尽相同。',
+  '端午节':'ℹ️ 农历五月初五，常见习俗有吃粽子、赛龙舟。',
+  '七夕节':'ℹ️ 农历七月初七，与牛郎织女传说相关。',
+  '中元节':'ℹ️ 农历七月十五，各地有祭祖等民俗。',
+  '中秋节':'ℹ️ 农历八月十五，常见习俗有赏月、吃月饼。',
+  '重阳节':'ℹ️ 农历九月初九，常见习俗有登高、敬老。',
+  '腊八节':'ℹ️ 农历十二月初八，部分地区有喝腊八粥的习俗。'
+};
 for(const [m,day,title] of c.lunar_events) {
   const d=lunar.get(`${m}-${day}`);
   if(!d) throw new Error(`找不到农历日期：${m}-${day}`);
-  add('festival',title,d);
+  add('festival',title,d,null,lunarNotes[title]||'');
 }
 // 节气数据：日期由香港天文台 2026 节气表核对；记录北京时间的日期，不用于推算精确交节时刻。
 const terms=[
@@ -61,14 +97,16 @@ const terms=[
   ['09-07','白露'],['09-23','秋分'],['10-08','寒露'],['10-23','霜降'],
   ['11-07','立冬'],['11-22','小雪'],['12-07','大雪'],['12-22','冬至']
 ];
-for(const [md,title] of terms) add('festival',`🌿 ${title}`,`${year}-${md}`);
+for(const [md,title] of terms) add('festival',`🌿 ${title}`,`${year}-${md}`,null,
+  `ℹ️ ${title}是二十四节气之一；这里显示的是北京时间对应的日期，具体交节时刻以天文历算为准。`);
 const nthSunday=(month,n)=>{const first=new Date(Date.UTC(year,month-1,1)).getUTCDay();return `${year}-${String(month).padStart(2,'0')}-${String(1+(7-first)%7+7*(n-1)).padStart(2,'0')}`};
 add('festival','母亲节',nthSunday(5,2)); add('festival','父亲节',nthSunday(6,3));
 if(c.gift_reminders) for(const r of c.gift_rules) {
   const target=r.date||(lunar.get(r.lunar.join('-')));
   if(!target) throw new Error(`礼物规则缺少日期：${r.name}`);
-  add('festival',`🎁 准备${r.name}礼物`,shift(target,-r.days_before),null,
-    `${r.name} 是 ${target}。这是提前 ${r.days_before} 天的准备提醒。`,`${c.reminder_hour}:00`);
+  add('festival',`🎁 记得准备${r.name}礼物！`,shift(target,-r.days_before),null,
+    `再过 ${r.days_before} 天就是${r.name}：${dateLabel(target)}。有心意想送的话，今天可以开始准备啦。`,`${c.reminder_hour}:00`,
+    `festival-${shift(target,-r.days_before)}-🎁 准备${r.name}礼物`);
 }
 for(const p of c.personal_events) add('festival',p.title,p.date,null,p.description||'',p.time||null);
 const file=path.join(root,c.almanac_csv);
@@ -105,7 +143,7 @@ if(c.daily_almanac) {
     const notes=[...new Set([...yi,...ji])].filter(term=>glossary[term]).slice(0,5)
       .map(term=>`${term}：${glossary[term]}`).join('；');
     add('almanac','💡 今日宜忌',d,null,
-      `农历${l.getMonthInChinese()}月${l.getDayInChinese()} · ${l.getYearInGanZhi()}年${l.getMonthInGanZhi()}月${l.getDayInGanZhi()}日\n宜：${yi.join('、')}\n忌：${ji.join('、')}${notes?'\n术语简释：'+notes:''}\n来源：${source}\n宜忌属传统民俗参考，并非官方放假或科学建议。`);
+      `🗓 农历${l.getMonthInChinese()}月${l.getDayInChinese()} · ${l.getYearInGanZhi()}年${l.getMonthInGanZhi()}月${l.getDayInGanZhi()}日\n✅ 宜：${yi.join('、')}\n❌ 忌：${ji.join('、')}${notes?'\n📖 看懂这些词：'+notes+'。':''}\n来源：${source}。传统民俗仅供参考。`);
   }
 }
 const escape=s=>String(s).replaceAll('\\','\\\\').replaceAll('\n','\\n').replaceAll(',','\\,').replaceAll(';','\\;');
@@ -132,7 +170,7 @@ const write=(key,name)=> {
   fs.writeFileSync(path.join(out,`${key}.ics`),lines.map(fold).join('\r\n')+'\r\n');
   return {calendar:name,events:seen.size};
 };
-console.log(JSON.stringify([write('calendar','2026 个人日历'),write('holiday','2026 中国节假日调休'),write('festival','2026 活动纪念日'),write('almanac','2026 老黄历')],null,2));
+console.log(JSON.stringify([write('calendar','2026 个人日历'),write('holiday','2026 中国节假日调休'),write('festival','2026 活动纪念日'),write('almanac','2026 中国老黄历')],null,2));
 const pages = path.join(root,'docs');
 fs.mkdirSync(pages,{recursive:true});
 for(const filename of ['calendar.ics','holiday.ics','festival.ics','almanac.ics']) {
