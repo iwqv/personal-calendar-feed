@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import lunarJavascript from 'lunar-javascript';
+
+const {Solar} = lunarJavascript;
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const c = JSON.parse(fs.readFileSync(path.join(root, 'config.json'), 'utf8'));
@@ -69,6 +72,7 @@ if(c.gift_reminders) for(const r of c.gift_rules) {
 }
 for(const p of c.personal_events) add('festival',p.title,p.date,null,p.description||'',p.time||null);
 const file=path.join(root,c.almanac_csv);
+const almanacOverrides=new Map();
 if(c.daily_almanac && fs.existsSync(file)) {
   const rows=fs.readFileSync(file,'utf8').replace(/^\uFEFF/,'').trim().split(/\r?\n/).slice(1);
   for(const [i,line] of rows.entries()) {
@@ -76,8 +80,32 @@ if(c.daily_almanac && fs.existsSync(file)) {
     const cols=line.split(',');
     if(cols.length!==4) throw new Error(`黄历 CSV 第 ${i+2} 行格式错误；字段不得含逗号`);
     const [date,yi,ji,source]=cols.map(x=>x.trim());
-    if (!source) throw new Error(`黄历 CSV 第 ${i+2} 行缺少来源`);
-    if(date.startsWith(`${year}-`)) add('almanac','💡 今日宜忌',date,null,`宜：${yi||'未提供'}\n忌：${ji||'未提供'}\n参考来源：${source}\n传统民俗信息，仅供参考。`);
+    if (!source || !yi || !ji) throw new Error(`黄历 CSV 第 ${i+2} 行缺少宜、忌或来源`);
+    if(almanacOverrides.has(date)) throw new Error(`黄历 CSV 日期重复：${date}`);
+    if(date.startsWith(`${year}-`)) almanacOverrides.set(date,{yi,ji,source});
+  }
+}
+if(c.daily_almanac) {
+  const glossary={
+    '祭祀':'祭拜祖先或神明','祈福':'祈求福祉','斋醮':'传统宗教仪式',
+    '求嗣':'祈求子嗣','嫁娶':'举行婚礼','冠笄':'传统成人礼',
+    '出行':'外出远行','开市':'商铺开业','交易':'进行买卖',
+    '会亲友':'会见亲友','入宅':'迁入新居','移徙':'搬迁',
+    '动土':'建筑施工破土','破土':'墓葬工程破土','安葬':'安置逝者',
+    '修造':'修建房屋','纳采':'传统婚礼的提亲礼','沐浴':'沐浴净身',
+    '扫舍':'打扫房屋','馀事勿取':'其余事项不宜安排'
+  };
+  for(let d=`${year}-01-01`;d<=`${year}-12-31`;d=shift(d,1)) {
+    const [y,m,day]=d.split('-').map(Number);
+    const l=Solar.fromYmd(y,m,day).getLunar();
+    const entry=almanacOverrides.get(d);
+    const yi=entry?entry.yi.split('、'):l.getDayYi();
+    const ji=entry?entry.ji.split('、'):l.getDayJi();
+    const source=entry?entry.source:'lunar-javascript 1.7.7（民俗历法计算）';
+    const notes=[...new Set([...yi,...ji])].filter(term=>glossary[term]).slice(0,5)
+      .map(term=>`${term}：${glossary[term]}`).join('；');
+    add('almanac','💡 今日宜忌',d,null,
+      `农历${l.getMonthInChinese()}月${l.getDayInChinese()} · ${l.getYearInGanZhi()}年${l.getMonthInGanZhi()}月${l.getDayInGanZhi()}日\n宜：${yi.join('、')}\n忌：${ji.join('、')}${notes?'\n术语简释：'+notes:''}\n来源：${source}\n宜忌属传统民俗参考，并非官方放假或科学建议。`);
   }
 }
 const escape=s=>String(s).replaceAll('\\','\\\\').replaceAll('\n','\\n').replaceAll(',','\\,').replaceAll(';','\\;');
@@ -107,6 +135,6 @@ const write=(key,name)=> {
 console.log(JSON.stringify([write('calendar','2026 个人日历'),write('holiday','2026 中国节假日调休'),write('festival','2026 活动纪念日'),write('almanac','2026 老黄历')],null,2));
 const pages = path.join(root,'docs');
 fs.mkdirSync(pages,{recursive:true});
-for(const filename of ['calendar.ics','holiday.ics','festival.ics']) {
+for(const filename of ['calendar.ics','holiday.ics','festival.ics','almanac.ics']) {
   fs.copyFileSync(path.join(out,filename),path.join(pages,filename));
 }
