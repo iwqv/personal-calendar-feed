@@ -32,6 +32,7 @@
   "gift_rules": [
     {"name":"情人节","date":"2026-02-14","days_before":7},
     {"name":"母亲节","date":"2026-05-10","days_before":7},
+    {"name":"父亲节","date":"2026-06-21","days_before":7},
     {"name":"七夕节","lunar":[7,7],"days_before":7}
   ],
   "almanac_csv": "almanac.csv"
